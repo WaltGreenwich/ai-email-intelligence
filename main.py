@@ -1,106 +1,92 @@
 import os
 import pandas as pd
-from anthropic import Anthropic
+import google.generativeai as genai
 from dotenv import load_dotenv
 import json
+import time
+import warnings
 
-# Load environment variables
+# Ocultar avisos para una terminal limpia para LinkedIn
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 load_dotenv()
 
-# Initialize Anthropic client
-client = Anthropic(api_key=os.getenv('ANTHROPIC_API_KEY'))
+# Configuración con el modelo que confirmamos que funciona en tu cuenta
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('models/gemini-flash-latest')
 
 
 def classify_email(email_from, subject, body):
-    """
-    Uses Claude (Anthropic) to classify email and extract insights
-    """
-
-    prompt = f"""Analyze this email and provide:
-1. Category (Lead/Customer/Spam/Newsletter)
-2. Urgency (High/Medium/Low)
-3. Main intent (in 1 sentence)
-4. Suggested action (in 1 sentence)
-
-Email:
-From: {email_from}
-Subject: {subject}
-Content: {body}
-
-Respond ONLY in JSON format:
-{{
-  "category": "Lead/Customer/Spam/Newsletter",
-  "urgency": "High/Medium/Low",
-  "intent": "brief description",
-  "suggested_action": "recommended action"
-}}"""
+    # Prompt mejorado para extraer los 4 campos de tu README
+    prompt = f"""Analyze this email and provide a structured analysis.
+    
+    Email Details:
+    From: {email_from}
+    Subject: {subject}
+    Content: {body}
+    
+    Respond ONLY in JSON format with these exact keys:
+    {{
+      "category": "Lead/Customer/Spam/Newsletter",
+      "urgency": "High/Medium/Low",
+      "intent": "Short description of what the sender wants",
+      "suggested_action": "Recommended next step"
+    }}"""
 
     try:
-        response = client.messages.create(
-            model="claude-3-5-haiku-20241022",
-            max_tokens=200,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        return response.content[0].text
-
+        response = model.generate_content(prompt)
+        res_text = response.text
+        # Limpieza de markdown
+        if "{" in res_text:
+            res_text = res_text[res_text.find("{"):res_text.rfind("}")+1]
+        return res_text
     except Exception as e:
         return f"Error: {str(e)}"
 
 
 def process_emails(csv_file):
-    print("🤖 AI Email Intelligence (powered by Claude) - Processing...\n")
+    print("\n🤖 AI Email Intelligence (Powered by Gemini) - Processing...\n")
 
-    # Forzamos a que no use columnas como índice
-    df = pd.read_csv(csv_file, index_col=False)
+    try:
+        df = pd.read_csv(csv_file)
+    except Exception as e:
+        print(f"❌ Error al leer CSV: {e}")
+        return
 
     results = []
-
-    # 'i' será nuestro contador (empezando en 1)
-    # 'row' contiene los datos de cada fila
     for i, (_, row) in enumerate(df.iterrows(), 1):
-        total_emails = len(df)
-        print(f"📧 Analyzing email {i} / {total_emails}...")
+        print(f"📧 Analyzing email {i}/{len(df)}...")
 
         analysis = classify_email(
-            str(row['email_from']),
-            str(row['subject']),
-            str(row['body'])
-        )
+            row['email_from'], row['subject'], row['body'])
 
-        # Try to parse JSON for better display
         try:
             parsed = json.loads(analysis)
-            formatted_analysis = json.dumps(parsed, indent=2)
+            formatted = json.dumps(parsed, indent=2)
         except:
-            formatted_analysis = analysis
+            formatted = analysis
 
         results.append({
             'email_from': row['email_from'],
             'subject': row['subject'],
-            'ai_analysis': formatted_analysis
+            'ai_analysis': formatted
         })
+        # Pausa de seguridad para la cuota gratuita
+        time.sleep(2)
 
-        print(f"   ✅ Completed\n")
+    # Guardar resultados
+    pd.DataFrame(results).to_csv('email_analysis_results.csv', index=False)
 
-    # Save results
-    results_df = pd.DataFrame(results)
-    results_df.to_csv('email_analysis_results.csv', index=False)
+    print("\n" + "="*60)
+    print("✨ Analysis completed successfully!")
+    print("="*60)
 
-    print("=" * 60)
-    print("✨ Analysis completed!")
-    print(f"📊 Results saved to: email_analysis_results.csv")
-    print("=" * 60)
-
-    # Show preview
-    print("\n📋 Results preview:\n")
-    for result in results[:3]:
-        print(f"From: {result['email_from']}")
-        print(f"Subject: {result['subject']}")
-        print(f"Analysis:\n{result['ai_analysis']}\n")
-        print("-" * 60 + "\n")
+    # Vista previa para tu captura de LinkedIn
+    print("\n📋 DETAILED RESULTS PREVIEW:\n")
+    for res in results[:2]:  # Mostramos los 2 mejores ejemplos
+        print(f"From: {res['email_from']}")
+        print(f"Analysis:\n{res['ai_analysis']}")
+        print("-" * 40)
 
 
 if __name__ == "__main__":
