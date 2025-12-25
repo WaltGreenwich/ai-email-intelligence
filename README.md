@@ -27,7 +27,7 @@ Email CSV → Python Script → Google Gemini API → Structured Analysis → CS
 ```
 
 1. **Ingest**: Reads email data from a local CSV file using Pandas.
-2. **Analyze**: Sends content to Gemini 1.5 Flash with a structured system prompt.
+2. **Analyze**: Sends content to Gemini 2.0 Flash with a structured system prompt.
 3. **Parse**: Extracts four key data points: category, urgency, intent, and suggested_action.
 4. **Export**: Generates a results CSV ready for CRM or workflow automation.
 
@@ -110,4 +110,5 @@ Connect: [LinkedIn](https://www.linkedin.com/in/waltgreenwich/) | [Portfolio](ht
 ---
 
 **Note**: This is a learning project demonstrating AI-first design. For production, add error handling, rate limiting, and cost optimization.
+
 
