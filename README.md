@@ -106,10 +106,12 @@ python main.py
 Built by Walter Greenwich - exploring applied AI in workflow automation.
 
 Connect: [LinkedIn](https://www.linkedin.com/in/waltgreenwich/) | [Portfolio](https://waltgreenwich-com.vercel.app/)
+Connect: <a href="https://www.linkedin.com/in/waltgreenwich/" target="_blank">LinkedIn</a> | <a href="https://waltgreenwich-com.vercel.app/" target="_blank">Portfolio</a>
 
 ---
 
 **Note**: This is a learning project demonstrating AI-first design. For production, add error handling, rate limiting, and cost optimization.
+
 
 
 
